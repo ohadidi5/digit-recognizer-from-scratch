@@ -900,10 +900,10 @@
       const rect = canvas.getBoundingClientRect();
       let clientX = e.clientX;
       let clientY = e.clientY;
-      if (clientX === undefined && e.touches && e.touches.length > 0) {
+      if ((clientX === undefined || clientX === 0) && e.touches && e.touches.length > 0) {
         clientX = e.touches[0].clientX;
         clientY = e.touches[0].clientY;
-      } else if (clientX === undefined && e.changedTouches && e.changedTouches.length > 0) {
+      } else if ((clientX === undefined || clientX === 0) && e.changedTouches && e.changedTouches.length > 0) {
         clientX = e.changedTouches[0].clientX;
         clientY = e.changedTouches[0].clientY;
       }
@@ -914,9 +914,16 @@
     }
 
     function startDraw(e) {
-      if (isDreaming) return;
-      if (e.button !== undefined && e.button !== 0) return;
-      e.preventDefault();
+      if (isDreaming) {
+        if (dreamAnimationTimer) clearTimeout(dreamAnimationTimer);
+        isDreaming = false;
+        dreamIndicator.classList.add('hidden');
+      }
+      // Only block non-primary mouse clicks. Touch/pen are always permitted!
+      if (e.pointerType === 'mouse' && e.button !== 0) return;
+      if (e.type === 'mousedown' && e.button !== 0) return;
+
+      if (e.cancelable) e.preventDefault();
       isDrawing = true;
       hasDrawn = true;
       const pos = getCoords(e);
@@ -924,11 +931,12 @@
       ctx.moveTo(pos.x, pos.y);
       ctx.lineTo(pos.x, pos.y);
       ctx.stroke();
+      updateInference();
     }
 
     function draw(e) {
-      if (!isDrawing || isDreaming) return;
-      e.preventDefault();
+      if (!isDrawing) return;
+      if (e.cancelable) e.preventDefault();
       const pos = getCoords(e);
       ctx.lineTo(pos.x, pos.y);
       ctx.stroke();
@@ -943,25 +951,30 @@
       }
     }
 
-    if (window.PointerEvent) {
-      canvas.addEventListener('pointerdown', (e) => {
-        try { canvas.setPointerCapture(e.pointerId); } catch(err) {}
-        startDraw(e);
-      });
-      canvas.addEventListener('pointermove', draw);
-      canvas.addEventListener('pointerup', (e) => {
-        try { canvas.releasePointerCapture(e.pointerId); } catch(err) {}
-        stopDraw(e);
-      });
-      canvas.addEventListener('pointercancel', stopDraw);
-    } else {
-      canvas.addEventListener('mousedown', startDraw);
-      canvas.addEventListener('mousemove', draw);
-      window.addEventListener('mouseup', stopDraw);
-      canvas.addEventListener('touchstart', startDraw, { passive: false });
-      canvas.addEventListener('touchmove', draw, { passive: false });
-      window.addEventListener('touchend', stopDraw);
-    }
+    // Bind unified pointer events (Modern Desktop & Mobile)
+    canvas.addEventListener('pointerdown', (e) => {
+      try { canvas.setPointerCapture(e.pointerId); } catch(err) {}
+      startDraw(e);
+    }, { passive: false });
+    canvas.addEventListener('pointermove', draw, { passive: false });
+    canvas.addEventListener('pointerup', (e) => {
+      try { canvas.releasePointerCapture(e.pointerId); } catch(err) {}
+      stopDraw(e);
+    });
+    canvas.addEventListener('pointercancel', stopDraw);
+
+    // Direct touch event fallbacks for mobile browsers
+    canvas.addEventListener('touchstart', startDraw, { passive: false });
+    canvas.addEventListener('touchmove', draw, { passive: false });
+    canvas.addEventListener('touchend', stopDraw, { passive: false });
+    canvas.addEventListener('touchcancel', stopDraw, { passive: false });
+
+    // Mouse fallback
+    canvas.addEventListener('mousedown', startDraw);
+    window.addEventListener('mousemove', (e) => {
+      if (isDrawing) draw(e);
+    });
+    window.addEventListener('mouseup', stopDraw);
 
     function clearCanvas() {
       if (dreamAnimationTimer) clearTimeout(dreamAnimationTimer);
@@ -1623,7 +1636,7 @@
     applyMemoryBlend();
     setTargetDigit(5);
     setDreamDigit(5);
-    activateMode("dream");
+    activateMode("test");
   </script>
 
   </body>
