@@ -2,10 +2,34 @@
 <html lang="he" dir="rtl">
 <head>
   <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+  <title>מודל ה-AI המאוחד - 100% מאפס</title>
   <script src="https://www.gstatic.com/antigravity/web/dev/tailwindcss.min.js"></script>
   <style>
+    :root {
+      --background: #090d16;
+      --foreground: #f1f5f9;
+      --card: #131c31;
+      --card-border: #23304c;
+      --muted-foreground: #94a3b8;
+      --primary: #8b5cf6;
+      --primary-hover: #7c3aed;
+    }
+    * {
+      box-sizing: border-box;
+    }
+    body {
+      background-color: var(--background);
+      color: var(--foreground);
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+      margin: 0;
+      padding: 0;
+      overflow-x: hidden;
+      -webkit-tap-highlight-color: transparent;
+    }
     canvas { touch-action: none; }
     .neuron-cell {
+      aspect-ratio: 1 / 1;
       transition: background-color 0.1s ease, transform 0.1s ease;
     }
     .neuron-cell:hover {
@@ -18,14 +42,14 @@
   </style>
 </head>
 <body class="bg-transparent text-[var(--foreground)] antialiased p-0 m-0 select-none">
-  <div class="py-2 space-y-3 max-w-xl mx-auto">
+  <div class="py-3 px-3 sm:px-4 space-y-3 max-w-xl mx-auto">
     <!-- Header -->
-    <div class="flex items-center justify-between border-b border-[var(--card-border)] pb-2">
+    <div class="flex flex-col sm:flex-row sm:items-center justify-between border-b border-[var(--card-border)] pb-2 gap-2">
       <div>
         <h2 class="text-base font-bold text-[var(--foreground)] flex items-center gap-2">
           <span>🧠</span> מודל ה-AI המאוחד (אימון, זיהוי, רנטגן, וציור חי)
         </h2>
-        <div class="flex items-center gap-2 mt-0.5 text-[10px]">
+        <div class="flex items-center gap-2 mt-0.5 text-[10px] flex-wrap">
           <span class="inline-flex items-center px-1.5 py-0.5 rounded font-bold bg-purple-500/10 text-purple-400 border border-purple-500/20">
             4 דפים מאומנים (478 ספרות)
           </span>
@@ -37,7 +61,7 @@
           </span>
         </div>
       </div>
-      <div class="flex items-center gap-1.5">
+      <div class="flex items-center flex-wrap gap-1.5">
         <button id="toggle-memory-btn" class="px-2 py-1 text-xs rounded bg-indigo-500/20 border border-indigo-500/40 text-indigo-300 hover:bg-indigo-500/30 transition-colors font-bold flex items-center gap-1" title="שליטה בכמות הספרות שה-AI זוכר מכל מקור">
           <span>🎛️</span> בקרת זיכרון <span id="header-mem-arrow" class="text-[9px]">▲</span>
         </button>
@@ -265,33 +289,33 @@
         </div>
 
         <!-- 2. Hidden Layer 1 (128 Neurons Grid) -->
-        <div class="bg-[var(--card)] p-2.5 rounded-lg border border-[var(--card-border)] flex flex-col justify-between">
-          <div>
+        <div class="bg-[var(--card)] p-2.5 rounded-lg border border-[var(--card-border)] flex flex-col justify-between items-center">
+          <div class="w-full">
             <div class="text-[10px] font-bold text-emerald-400 mb-1 flex items-center justify-between">
               <span>⚡ שכבה 1 (128 נוירונים):</span>
-              <span class="text-[9px] font-mono text-[var(--muted-foreground)]">תכונות בסיסיות</span>
+              <span class="text-[9px] font-mono text-[var(--muted-foreground)]">16x8</span>
             </div>
-            <div id="grid-l1" class="grid grid-cols-16 gap-0.5 p-1 bg-black/80 rounded border border-emerald-500/20">
+            <div id="grid-l1" style="display: grid; grid-template-columns: repeat(16, minmax(0, 1fr)); gap: 2px; width: 100%; max-width: 140px; margin: 0 auto;" class="p-1.5 bg-black/80 rounded border border-emerald-500/20">
               <!-- 128 cells -->
             </div>
           </div>
-          <p class="text-[9px] text-[var(--muted-foreground)] mt-1 text-center">
+          <p class="text-[9px] text-[var(--muted-foreground)] mt-1.5 text-center leading-tight">
             כל ריבוע הוא נוירון: מזהה קווים, זוויות ולולאות
           </p>
         </div>
 
         <!-- 3. Hidden Layer 2 (64 Neurons Grid) -->
-        <div class="bg-[var(--card)] p-2.5 rounded-lg border border-[var(--card-border)] flex flex-col justify-between">
-          <div>
+        <div class="bg-[var(--card)] p-2.5 rounded-lg border border-[var(--card-border)] flex flex-col justify-between items-center">
+          <div class="w-full">
             <div class="text-[10px] font-bold text-purple-400 mb-1 flex items-center justify-between">
               <span>🧩 שכבה 2 (64 נוירונים):</span>
-              <span class="text-[9px] font-mono text-[var(--muted-foreground)]">שילוב צורות</span>
+              <span class="text-[9px] font-mono text-[var(--muted-foreground)]">8x8</span>
             </div>
-            <div id="grid-l2" class="grid grid-cols-8 gap-0.5 p-1 bg-black/80 rounded border border-purple-500/20">
+            <div id="grid-l2" style="display: grid; grid-template-columns: repeat(8, minmax(0, 1fr)); gap: 2px; width: 100%; max-width: 110px; margin: 0 auto;" class="p-1.5 bg-black/80 rounded border border-purple-500/20">
               <!-- 64 cells -->
             </div>
           </div>
-          <p class="text-[9px] text-[var(--muted-foreground)] mt-1 text-center">
+          <p class="text-[9px] text-[var(--muted-foreground)] mt-1.5 text-center leading-tight">
             נוירונים גבוהים: משלבים את החלקים להבנת הספרה השלמה
           </p>
         </div>
@@ -432,7 +456,7 @@
     const l1Cells = [];
     for (let i = 0; i < 128; i++) {
       const cell = document.createElement('div');
-      cell.className = 'w-2 h-2 rounded-[1px] bg-zinc-800 neuron-cell';
+      cell.className = 'w-full aspect-square rounded-[1px] bg-zinc-800 neuron-cell';
       cell.title = `נוירון L1 #${i}`;
       gridL1.appendChild(cell);
       l1Cells.push(cell);
@@ -442,7 +466,7 @@
     const l2Cells = [];
     for (let i = 0; i < 64; i++) {
       const cell = document.createElement('div');
-      cell.className = 'w-3.5 h-3.5 rounded-[2px] bg-zinc-800 neuron-cell';
+      cell.className = 'w-full aspect-square rounded-[1.5px] bg-zinc-800 neuron-cell';
       cell.title = `נוירון L2 #${i}`;
       gridL2.appendChild(cell);
       l2Cells.push(cell);
