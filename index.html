@@ -140,17 +140,36 @@
 
     <!-- Main Workspace: TWO BOXES -->
     <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
-      <!-- Two Writing Squares Card -->
+      <!-- Writing Squares Card with Mode Switcher -->
       <div class="flex flex-col items-center gap-2 bg-[var(--card)] p-3 rounded-lg border border-[var(--card-border)]">
-        <div class="w-full flex items-center justify-between text-xs border-b border-zinc-800 pb-1.5">
+        <div class="w-full flex items-center justify-between text-xs border-b border-zinc-800 pb-1.5 flex-wrap gap-1">
           <span class="font-bold text-[var(--foreground)] flex items-center gap-1">
-            <span>✍️</span> לוח כתיבה כפול:
+            <span>✍️</span> לוח כתיבה:
           </span>
-          <span id="canvas-hint" class="text-[10px] text-amber-400 font-semibold">למספר דו-ספרתי כתוב בכל ריבוע ספרה אחת!</span>
+          <!-- Mode Switcher Buttons -->
+          <div class="flex items-center gap-1 bg-zinc-900/90 p-0.5 rounded-lg border border-zinc-700/80">
+            <button id="mode-single-btn" class="px-2.5 py-1 text-[11px] rounded font-semibold transition-all text-zinc-400 hover:text-white flex items-center gap-1">
+              <span>🔲</span> ריבוע אחד
+            </button>
+            <button id="mode-double-btn" class="px-2.5 py-1 text-[11px] rounded font-semibold transition-all bg-purple-600 text-white shadow flex items-center gap-1">
+              <span>🔳</span> שני ריבועים
+            </button>
+          </div>
         </div>
 
-        <!-- The 2 Canvases Side by Side -->
-        <div class="flex items-center justify-center gap-2 sm:gap-3 py-1" dir="ltr">
+        <!-- Mode 1: Single Canvas Container -->
+        <div id="single-box-container" class="hidden flex-col items-center gap-1 w-full py-1">
+          <div class="flex items-center justify-between w-[200px] text-[10px] px-1 font-bold text-amber-400">
+            <span>ריבוע יחיד (0-16)</span>
+            <button id="clear-single-btn" class="px-1 text-[9px] rounded bg-zinc-800 hover:bg-rose-500/80 text-zinc-400 hover:text-white transition-colors" title="נקה ריבוע זה">✕</button>
+          </div>
+          <div class="relative border-2 border-dashed border-amber-500/50 hover:border-amber-400 rounded-lg overflow-hidden bg-black cursor-crosshair shadow-md">
+            <canvas id="canvasSingle" width="200" height="200" class="touch-none" style="touch-action: none; width: 200px; height: 200px;"></canvas>
+          </div>
+        </div>
+
+        <!-- Mode 2: Double Canvases Container (Active by default) -->
+        <div id="double-box-container" class="flex items-center justify-center gap-2 sm:gap-3 py-1" dir="ltr">
           <!-- Box 1: Tens Digit (1) -->
           <div class="flex flex-col items-center gap-1">
             <div class="flex items-center justify-between w-full text-[10px] px-1 font-bold text-cyan-400">
@@ -179,8 +198,8 @@
           </div>
         </div>
 
-        <p class="text-[9px] text-[var(--muted-foreground)] text-center leading-tight">
-          💡 טיפ: לספרה בודדת (למשל 7) צייר רק בריבוע האחדות. למספר דו-ספרתי (למשל 14) צייר 1 בעשרות ו-4 באחדות!
+        <p id="canvas-hint-tip" class="text-[9px] text-[var(--muted-foreground)] text-center leading-tight">
+          💡 טיפ: בשני ריבועים, ה-AI מצמיד את שתי הספרות לתמונה אחת ומשווה ישירות לדפים!
         </p>
       </div>
 
@@ -360,6 +379,15 @@
     let showMemoryPanel = true;
 
     // DOM Elements
+    const modeSingleBtn = document.getElementById('mode-single-btn');
+    const modeDoubleBtn = document.getElementById('mode-double-btn');
+    const singleBoxContainer = document.getElementById('single-box-container');
+    const doubleBoxContainer = document.getElementById('double-box-container');
+    const canvasSingle = document.getElementById('canvasSingle');
+    const clearSingleBtn = document.getElementById('clear-single-btn');
+    const canvasHintTip = document.getElementById('canvas-hint-tip');
+    let activeMode = 'double';
+
     const canvas1 = document.getElementById('canvas1');
     const canvas2 = document.getElementById('canvas2');
     const clearC1Btn = document.getElementById('clear-c1-btn');
@@ -849,13 +877,99 @@
       renderNeuralXRay(mergedData.vector, res);
     }
 
-    // Reusable drawing listener attacher for both canvases
+    // ==========================================
+    // SINGLE-BOX INFERENCE ENGINE
+    // ==========================================
+    function updateSingleInference() {
+      for (let j = 0; j < 17; j++) {
+        const b = document.getElementById(`bar-${j}`);
+        const v = document.getElementById(`val-${j}`);
+        if (b) b.style.width = '0%';
+        if (v) v.textContent = '0%';
+      }
+
+      const box = getInkBoundingBox(canvasSingle);
+      if (!box) {
+        badge.textContent = 'ממתין לציור...';
+        badge.className = 'text-xs font-bold px-3 py-1 rounded bg-[var(--card-border)] text-[var(--muted-foreground)] font-mono text-sm shadow';
+        activeL1CountEl.textContent = '0';
+        activeL2CountEl.textContent = '0';
+        const inC = document.getElementById('inputCanvas');
+        if (inC) {
+          const ictx = inC.getContext('2d');
+          ictx.fillStyle = 'black';
+          ictx.fillRect(0, 0, inC.width, inC.height);
+        }
+        return;
+      }
+
+      const singleData = extractVectorFromBox(canvasSingle, box);
+      const inC = document.getElementById('inputCanvas');
+      if (inC && singleData.previewCanvas) {
+        const ictx = inC.getContext('2d');
+        ictx.drawImage(singleData.previewCanvas, 0, 0, inC.width, inC.height);
+      }
+
+      const res = forwardPass(singleData.vector);
+      const predDigit = res.bestDigit;
+      const pStr = Math.round(res.maxP * 100);
+
+      badge.textContent = `תחזית: ${predDigit} (${pStr}%)`;
+      badge.className = 'text-xs font-bold px-3 py-1 rounded bg-amber-600 text-white shadow font-mono text-sm';
+
+      for (let c = 0; c < 17; c++) {
+        const pVal = Math.round(res.probs[c] * 100);
+        const b = document.getElementById(`bar-${c}`);
+        const v = document.getElementById(`val-${c}`);
+        if (b && pVal > 0) b.style.width = `${pVal}%`;
+        if (v && pVal > 0) v.textContent = `${pVal}%`;
+      }
+
+      renderNeuralXRay(singleData.vector, res);
+    }
+
+    function updateActiveInference() {
+      if (activeMode === 'single') {
+        updateSingleInference();
+      } else {
+        updateCombinedInference();
+      }
+    }
+
+    // Mode Switcher Logic
+    function setMode(mode) {
+      activeMode = mode;
+      if (mode === 'single') {
+        modeSingleBtn.className = 'px-2.5 py-1 text-[11px] rounded font-semibold transition-all bg-purple-600 text-white shadow flex items-center gap-1';
+        modeDoubleBtn.className = 'px-2.5 py-1 text-[11px] rounded font-semibold transition-all text-zinc-400 hover:text-white flex items-center gap-1';
+        singleBoxContainer.classList.remove('hidden');
+        singleBoxContainer.classList.add('flex');
+        doubleBoxContainer.classList.add('hidden');
+        doubleBoxContainer.classList.remove('flex');
+        if (canvasHintTip) canvasHintTip.textContent = '💡 מצב ריבוע אחד: צייר ספרה בודדת (0-9) או מספר דו-ספרתי רגיל!';
+      } else {
+        modeDoubleBtn.className = 'px-2.5 py-1 text-[11px] rounded font-semibold transition-all bg-purple-600 text-white shadow flex items-center gap-1';
+        modeSingleBtn.className = 'px-2.5 py-1 text-[11px] rounded font-semibold transition-all text-zinc-400 hover:text-white flex items-center gap-1';
+        doubleBoxContainer.classList.remove('hidden');
+        doubleBoxContainer.classList.add('flex');
+        singleBoxContainer.classList.add('hidden');
+        singleBoxContainer.classList.remove('flex');
+        if (canvasHintTip) canvasHintTip.textContent = '💡 מצב שני ריבועים: כתוב בכל ריבוע ספרה אחת, וה-AI יצמיד אותן לתמונה אחת וישווה לדפים!';
+      }
+      clearAll();
+    }
+
+    if (modeSingleBtn) modeSingleBtn.addEventListener('click', () => setMode('single'));
+    if (modeDoubleBtn) modeDoubleBtn.addEventListener('click', () => setMode('double'));
+
+    // Reusable drawing listener attacher for all canvases
     function setupDrawing(cvs) {
+      if (!cvs) return;
       const cctx = cvs.getContext('2d');
       cctx.fillStyle = 'black';
       cctx.fillRect(0, 0, cvs.width, cvs.height);
       cctx.strokeStyle = 'white';
-      cctx.lineWidth = 12;
+      cctx.lineWidth = cvs.width > 150 ? 14 : 12;
       cctx.lineCap = 'round';
       cctx.lineJoin = 'round';
 
@@ -885,7 +999,7 @@
         cctx.moveTo(p.x, p.y);
         cctx.lineTo(p.x, p.y);
         cctx.stroke();
-        updateCombinedInference();
+        updateActiveInference();
       }
 
       function onMove(e) {
@@ -894,14 +1008,14 @@
         const p = getC(e);
         cctx.lineTo(p.x, p.y);
         cctx.stroke();
-        updateCombinedInference();
+        updateActiveInference();
       }
 
       function onStop() {
         if (isDown) {
           cctx.closePath();
           isDown = false;
-          updateCombinedInference();
+          updateActiveInference();
         }
       }
 
@@ -926,22 +1040,28 @@
       window.addEventListener('mouseup', onStop);
     }
 
+    setupDrawing(canvasSingle);
     setupDrawing(canvas1);
     setupDrawing(canvas2);
 
     function clearBox(cvs) {
+      if (!cvs) return;
       const cctx = cvs.getContext('2d');
       cctx.fillStyle = 'black';
       cctx.fillRect(0, 0, cvs.width, cvs.height);
-      updateCombinedInference();
+      updateActiveInference();
     }
 
-    clearC1Btn.addEventListener('click', () => clearBox(canvas1));
-    clearC2Btn.addEventListener('click', () => clearBox(canvas2));
-    clearBtn.addEventListener('click', () => {
+    function clearAll() {
+      clearBox(canvasSingle);
       clearBox(canvas1);
       clearBox(canvas2);
-    });
+    }
+
+    if (clearSingleBtn) clearSingleBtn.addEventListener('click', () => clearBox(canvasSingle));
+    clearC1Btn.addEventListener('click', () => clearBox(canvas1));
+    clearC2Btn.addEventListener('click', () => clearBox(canvas2));
+    clearBtn.addEventListener('click', clearAll);
 
     // X-Ray Toggle
     toggleXRayBtn.addEventListener('click', () => {
